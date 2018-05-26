@@ -12,18 +12,18 @@ import mydatasets
 parser = argparse.ArgumentParser(description='Text classifier')
 
 # Model hyperparameters
-parser.add_argument('-lr', type=float, default=3e-4, help='initial learning rate [default: 0.001]')
+parser.add_argument('-lr', type=float, default=3e-4, help='initial learning rate [default: 3e-4]')
 parser.add_argument('-epochs', type=int, default=256, help='number of epochs for train [default: 256]')
-parser.add_argument('-batch-size', type=int, default=8, help='batch size for training [default: 64]')
+parser.add_argument('-batch-size', type=int, default=8, help='batch size for training [default: 8]')
 parser.add_argument('-dropout', type=float, default=0.5, help='the probability for dropout [default: 0.5]')
 parser.add_argument('-max-norm', type=float, default=3.0, help='l2 constraint of parameters [default: 3.0]')
 parser.add_argument('-use_pretrain', action='store_true', default=False, help='use pretrained embeddings' )
 parser.add_argument('-use_att', action='store_true', default=False, help='use attention layer' )
 parser.add_argument('-Hd', type=int, default=200, help='latent dimension of LSTM [default: 200]')
 
-# pretrained embeddings
+# pretrained embeddings (see -use_pretrain in the previous group)
 parser.add_argument('-vector_cache', type=str, default=os.path.join(os.getcwd(), '.vector_cache/input_vectors.pt'))
-parser.add_argument('-word_vectors', type=str, default='fasttext.es') # from wiki española
+parser.add_argument('-word_vectors', type=str, default='fasttext.en') 
 parser.add_argument('-d_embed', type=int, default=300)
 parser.add_argument('-data_cache', type=str, default=os.path.join(os.getcwd(), '.data_cache'))
 
@@ -37,7 +37,7 @@ parser.add_argument('-predict', type=str, default=None, help='predict the senten
 parser.add_argument('-test', action='store_true', default=False, help='train or test')
 parser.add_argument('-log-interval',  type=int, default=1,   help='how many steps to wait before logging training status [default: 1]')
 parser.add_argument('-test-interval', type=int, default=100, help='how many steps to wait before testing [default: 100]')
-parser.add_argument('-save-interval', type=int, default=100, help='how many steps to wait before saving [default:500]')
+parser.add_argument('-save-interval', type=int, default=100, help='how many steps to wait before saving [default:100]')
 parser.add_argument('-save-dir', type=str, default='snapshot', help='where to save the snapshot')
 parser.add_argument('-shuffle', action='store_true', default=False, help='shuffle the data every epoch' )
 
@@ -49,7 +49,7 @@ def legal(text_field, label_field, **kargs):
     train_data, dev_data, tst_data = l.splits(text_field, label_field)
     text_field.build_vocab(train_data, dev_data, tst_data, max_size=10000)
 
-    # Cargamos pretrained embeddings
+    # We load pretrained embeddings
     if args.word_vectors:
         if os.path.isfile(args.vector_cache):
             text_field.vocab.vectors = torch.load(args.vector_cache)

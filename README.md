@@ -1,0 +1,91 @@
+
+# Text classification
+
+Our goal is to classify a dataset of judgements into five different classes. In order to develop our model, we split the given dataset (around 14k observations) into a training set and a validation set (85-15%). We use pytorch.
+
+In order to train the model, just do
+
+```python main.py```
+
+If you want to change some hyperparameters, yo can add arguments, for instance
+
+```python main.py -dropout 0.7```
+
+will establish 0.7 as the probability of dropout instead of the default value of 0.5.
+
+In ```main.py``` you can have a look at the full list of hyperparameters and some other options.
+
+Uusing a gpu is highly recommended, since it can train a model in around 20min (nvidia gtx 980).
+
+In order to generate predictions for some test set,
+
+```python main.py -predict ../../data/testing_exam.xlsx -snapshot snapshot/2018-02-06_14-25-39/snapshot_steps15120.pt```
+
+where we load a set of model weights from a previous training execution.
+
+### Model
+
+Due to the sequential nature of the data, we decided to develop a recurrent neural network as the classifier.
+Given a sentence $i$ represented as a list of one-hot encoded words $w_{it}, t \in \left[0, T \right]$, we first embed the words to vectors through an embedding matrix $W_e \in \mathbb{R}^{d\times|V|}$ where $V$ is the vocabulary set and $d$ is the dimension of the continuous word representation (typically $d=300$):
+
+$$
+  x_{it} = W_e w_{it}
+$$
+
+
+Word embeddings can be learned from a randomly initialized matrix, or we can use a pretrained embedding matrix and then fine-tune the weights (see, for example [1]). We experimented with Spanish wikipedia embeddings [2], though we achieved better results without them.
+
+We use a LSTM recurrent cell to get annotations of each word by summarizing information of the neighbouring words. This architectural choice is supported by extensive empirical evidence (see for instance [3]). We applied the bidirectional variant:
+
+$$
+  \overrightarrow{h}_{it} = \overrightarrow{LSTM}(\overrightarrow{h}_{i,t-1}, x_{it})
+$$
+$$
+  \overleftarrow{h}_{it} = \overleftarrow{LSTM}(\overleftarrow{h}_{i,t+1}, x_{it})
+$$
+
+so a word representation is given as the concatenation of the two LSTMs outputs $h_{it} = \left[ \overleftarrow{h}_{it}; \overrightarrow{h}_{it} \right] \in \mathbb{R}^{2H_d}$ where $H_d$ is the hidden dimension of the LSTM cell (we chose $H_d = 200$ after a grid search). In order to get a fixed-lenght representation of a sentence, we experiment with two design choices:
+
+* Use the mean of the words: $h_i = \frac{1}{T} \sum h_{it}$
+
+* Use an attention layer (first introduced in [4]): $h_i = \sum \alpha_t h_{it}$ where
+
+$$
+u_t = tanh(W_s h_{it} + b_s)
+$$
+$$
+\alpha_t = softmax(u_t^T u_s)_t
+$$
+
+with $W_s, b_s, u_s$ being learned parameters. As a result of the normalization, we have $\sum \alpha_t = 1$, so the model can learn which words are more important than others in a given sentence. For our dataset, the increase in parameter number wasn't worth it (score didn't increase so much) so we just use the first variant.
+
+Finally, we just use a perceptron to map a sentence representation to logits using dropout ($p=0.5$) as a regularizer. The model can be optimized using the standard cross-entropy loss function with 5 classes.
+
+The architecture is coded in ```model.py```.
+
+### Optimization
+
+We use the Adam optimizer [5], which we found to be superior to the standard SGD. We set the learning rate to $3e-4$ and a batch size of 8 samples and early stopping after some epochs as a termination criterium and to avoid overfitting. We report accuracy and cross-entropy for the val set after each epoch. Details of the training and evaluation can be found in ```train.py```.
+
+### Preprocessing
+
+```mydatasets.py``` is the corresponding file. You can specify the location of the source datafile inside class Legal.
+
+A basic tokenization using regexes is applied in clean_str in order to get a list of words for each observation. The train-val split is specified in the method splits.
+
+
+### Results
+
+![around 96% acc](res.png)
+
+
+
+
+
+## References
+
+[1] - https://openreview.net/pdf?id=Sy5OAyZC-
+[2] - https://fasttext.cc/docs/en/pretrained-vectors.html
+[3] - https://arxiv.org/pdf/1708.02182.pdf
+[4] - https://arxiv.org/pdf/1409.0473.pdf
+[5] - https://arxiv.org/abs/1412.6980
