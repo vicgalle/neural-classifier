@@ -46,8 +46,9 @@ args = parser.parse_args()
 
 def legal(text_field, label_field, **kargs):
     l = mydatasets.Legal(text_field, label_field)
-    train_data, dev_data, tst_data = l.splits(text_field, label_field)
-    text_field.build_vocab(train_data, dev_data, tst_data, max_size=10000)
+
+    train_data, dev_data = l.splits(text_field, label_field)
+    text_field.build_vocab(train_data, dev_data, max_size=10000)
 
     # We load pretrained embeddings
     if args.word_vectors:
@@ -59,18 +60,19 @@ def legal(text_field, label_field, **kargs):
             torch.save(text_field.vocab.vectors, args.vector_cache)
 
     label_field.build_vocab(train_data, dev_data)
-    train_iter, dev_iter, tst_iter = data.Iterator.splits(
-                                (train_data, dev_data, tst_data), 
-                                batch_sizes=(args.batch_size, args.batch_size, args.batch_size),
+    train_iter, dev_iter = data.Iterator.splits(
+                                (train_data, dev_data), 
+                                batch_sizes=(args.batch_size, args.batch_size),
                                 **kargs)
-    return train_iter, dev_iter, tst_iter
+    return train_iter, dev_iter
 
 
 # Load data
 print("\nLoading data...")
 text_field = data.Field(lower=True)
 label_field = data.Field(sequential=False)
-train_iter, dev_iter, tst_iter = legal(text_field, label_field, device=-1, repeat=False)
+train_iter, dev_iter = legal(text_field, label_field, device=-1, repeat=False)
+
 
 # Update args and print
 args.embed_num = len(text_field.vocab)
@@ -91,7 +93,6 @@ if args.snapshot is None:
 else :
     print('\nLoading model from [%s]...' % args.snapshot)
     try:
-        #net = torch.load(args.snapshot)  Provocaba problemas al predecir
         net = model.LSTM_Text(args)
         net.load_state_dict(torch.load(args.snapshot))
     except :
@@ -104,15 +105,10 @@ if args.cuda:
 if args.predict is not None:
     label = train.predict(args.predict, net, text_field, label_field, args.cuda, args)
     print('\n[Text]  {}\n[Label] {}\n'.format(args.predict, label))
-elif args.test :
-    try:
-        train.eval(test_iter, net, args) 
-    except Exception as e:
-        print("\nSorry. The test dataset doesn't  exist.\n")
 else :
     print()
     try:
-        train.train(train_iter, dev_iter, tst_iter, net, label_field, args)
+        train.train(train_iter, dev_iter, net, label_field, args)
     except KeyboardInterrupt:
         print('-' * 89)
         print('Exiting from training early')

@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from sklearn.metrics import confusion_matrix
 import pandas as pd
 
-def train(train_iter, dev_iter, tst_iter, model, label_field, args):
+def train(train_iter, dev_iter, model, label_field, args):
     if args.cuda:
         model.cuda()
 
@@ -34,8 +34,7 @@ def train(train_iter, dev_iter, tst_iter, model, label_field, args):
             if steps % args.log_interval == 0:
                 corrects = (torch.max(logit, 1)[1].view(target.size()).data == target.data).sum()
                 accuracy = 100.0 * corrects/batch.batch_size
-                sys.stdout.write(
-                    '\rBatch[{}] - loss: {:.6f}  acc: {:.4f}%({}/{})'.format(steps, 
+                print('\rBatch[{}] - loss: {:.6f}  acc: {:.4f}%({}/{})'.format(steps, 
                                                                              loss.data[0], 
                                                                              accuracy,
                                                                              corrects,
@@ -48,7 +47,7 @@ def train(train_iter, dev_iter, tst_iter, model, label_field, args):
             #    torch.save(model.state_dict(), save_path)
 
         # We evaluate the metric over the validation set epoch after epoch
-        print('\nEpoch: ' + str(epoch))
+        print('\nEpoch: ' + str(epoch), flush=True)  #Flush is needed to "real-time" printing in the Lovelace Cluster
         acc = eval(dev_iter, model, args)
 
         # We save the weights
@@ -57,7 +56,6 @@ def train(train_iter, dev_iter, tst_iter, model, label_field, args):
         save_path = '{}_steps{}.pt'.format(save_prefix, steps)
         torch.save(model.state_dict(), save_path)
 
-        #test(tst_iter, model, label_field, args)
         if last_acc > acc and epoch > 15:
             print("Training stopped early due to validation set")
             print('Evaluation acc: {:.4f}% \n'.format(last_acc))                                                      
@@ -71,7 +69,6 @@ def train(train_iter, dev_iter, tst_iter, model, label_field, args):
             print('Confusion matrix for the validation set')
             print(C)
 
-            test(tst_iter, model, label_field, args)
             break
 
         last_acc = acc                        
@@ -122,33 +119,7 @@ def eval(dev_iter, model, args):
                                                                        size))
     return accuracy
 
-def test(tst_iter, model, label_field, args):
-    model.eval()
-    corrects, avg_loss = 0, 0
-    preds = []
-    for batch in tst_iter:
-        feature, _ = batch.text, batch.label
-        feature.data.t_()
-        if args.cuda:
-            feature = feature.cuda()
-
-        logit = model(feature)
-
-        #print(torch.max(logit, 1)[1].data.size())
-        #preds.append(label_field.vocab.itos[torch.max(logit, 1)[1].data[0]+1]) 
-        preds.append(torch.max(logit, 1)[1].data + 1) 
-    #print(len(preds))
-    #print(len(preds[0]))
-
-    flat_preds = [item for sublist in preds for item in sublist]
-    #print(len(flat_preds))
-    for i in range(len(flat_preds)):
-        flat_preds[i] = label_field.vocab.itos[flat_preds[i]]
-    df = pd.Series(flat_preds)
-    #df.to_csv('preds.csv')
-
 def predict(data, model, text_field, label_field, cuda_flag, args):
-    #assert isinstance(text, str)
     df = pd.read_excel(data)
 
     model.eval()
@@ -182,10 +153,6 @@ def predict(data, model, text_field, label_field, cuda_flag, args):
         labels.append(label_field.vocab.itos[predicted.data[0]+1])
     
     df['pred'] = labels
-    #probs = np.asarray( probs )
-    #print(probs.shape)
-    #print(probs[0])
-    #df = pd.concat([df, pd.DataFrame(np.asarray( probs ))])
     print(df.head())
     df.to_csv('pred_proba.csv', float_format='%.5f')
     return labels

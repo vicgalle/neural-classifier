@@ -84,12 +84,6 @@ class Legal(TarDataset):
             #examples += [data.Example.fromlist([str(line), str(target)], fields) for line,target in zip(df.Fallos,df.Grupo)]
             examples += [data.Example.fromlist([str(line), str(target)], fields) for line,target in zip(df.fallo,df.grupo)]
 
-            df = pd.read_excel(os.path.join(path, 'testing_exam.xlsx'))
-            #print(df.fallo[0])
-            self.len_test = len(df)
-            print(self.len_test)
-            examples += [data.Example.fromlist([str(line), str(-1)], fields) for line in df.fallo]
-
         super(Legal, self).__init__(examples, fields, **kwargs)
 
     @classmethod
@@ -110,14 +104,9 @@ class Legal(TarDataset):
         """
         path = cls.download_or_unzip(root)
         examples = cls(text_field, label_field, path=path, **kwargs).examples
-        test_index = len(examples) - 2511   # watch out!
-        test = examples[test_index:]
-        print(len(test))
-        examples = examples[:test_index]
 
         if shuffle: random.shuffle(examples)
         dev_index = -1 * int(dev_ratio*len(examples))
 
         return (cls(text_field, label_field, examples=examples[:dev_index]),
-                cls(text_field, label_field, examples=examples[dev_index:]),
-                cls(text_field, label_field, examples=test))
+                cls(text_field, label_field, examples=examples[dev_index:]))
