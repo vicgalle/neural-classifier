@@ -76,7 +76,7 @@ A basic tokenization using regexes is applied in clean_str in order to get a lis
 
 ### Results
 
-![around 96% acc](res.png)
+![around 96% acc](src/lstm/res.png)
 
 
 
