@@ -24,5 +24,10 @@ We install the two dependencies
 ```pip install --user http://download.pytorch.org/whl/cu75/torch-0.2.0.post3-cp36-cp36m-manylinux1_x86_64.whl```
 ```pip install --user torchtext```
 
+We go to the desired module
+
+```cd src/lstm```
+
 Then, we may train or test some dataset, please see src/lstm/README.Rmd. Executions can be launched via
-```qsub -q gpu.q -V -b y -N gpu -l h_vmem=32G -cwd "python main.py"``` (see arguments in the readme or src/lstm/main.py).
+```qsub -q gpu.q -V -b y -N gpu -l h_vmem=32G -cwd "python main.py"```
+(see arguments in the readme or src/lstm/main.py).
