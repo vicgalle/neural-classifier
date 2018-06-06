@@ -21,7 +21,7 @@ Optionally, we may create a new conda environment
 ```source activate legalNLP```
 
 We install the two dependencies
-```pip install --user http://download.pytorch.org/whl/cu75/torch-0.2.0.post3-cp36-cp36m-manylinux1_x86_64.whl```
+```pip install --user http://download.pytorch.org/whl/cu80/torch-0.3.1-cp36-cp36m-linux_x86_64.whl```
 ```pip install --user torchtext```
 
 We go to the desired module
